@@ -1,0 +1,21 @@
+- type: dispatch
+  target: TestConcept
+  action: add
+  payload:
+    amount: 5
+
+- type: assert_state
+  target: TestConcept
+  expected_state:
+    value: 5
+
+- type: dispatch
+  target: TestConcept
+  action: add
+  payload:
+    amount: 10
+
+- type: assert_state
+  target: TestConcept
+  expected_state:
+    value: 15

@@ -1,0 +1,90 @@
+synchronizations:
+  - name: InputToMovement
+    when:
+      source: InputSystem
+      event: input_received
+    then:
+      - target: Pacman
+        action: change_direction
+        payload:
+          direction: event.key
+
+  - name: GameTick
+    when:
+      source: GameLoop
+      event: ticked
+    then:
+      - target: Pacman
+        action: move
+        payload: {}
+      - target: Ghost
+        action: move
+        payload: {}
+
+  - name: PacmanPositionUpdate
+    when:
+      source: Pacman
+      event: moved
+    then:
+      - target: Board
+        action: update_entity_position
+        payload:
+          name: event.name
+          x: event.x
+          y: event.y
+      - target: Ghost
+        action: update_target
+        payload:
+          x: event.x
+          y: event.y
+
+  - name: GhostPositionUpdate
+    when:
+      source: Ghost
+      event: moved
+    then:
+      - target: Board
+        action: update_entity_position
+        payload:
+          name: event.name
+          x: event.x
+          y: event.y
+
+  - name: WrapAround
+    when:
+      source: Board
+      event: out_of_bounds
+    then:
+      - target: Pacman
+        action: teleport
+        payload:
+          x: event.x
+          y: event.y
+
+  - name: GhostCollision
+    when:
+      source: Board
+      event: collision_detected
+    then:
+      - target: Pacman
+        action: die
+        payload: {}
+
+  - name: GameOver
+    when:
+      source: Pacman
+      event: died
+    then:
+      - target: GameLoop
+        action: end_game
+        payload: {}
+
+  - name: Scoring
+    when:
+      source: Board
+      event: pellet_eaten
+    then:
+      - target: GameLoop
+        action: add_score
+        payload:
+          points: event.points

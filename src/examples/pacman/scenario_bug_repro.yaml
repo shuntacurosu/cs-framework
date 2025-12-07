@@ -1,0 +1,31 @@
+- type: dispatch
+  target: Pacman
+  action: teleport
+  payload:
+    x: 1
+    y: 0
+
+- type: dispatch
+  target: InputSystem
+  action: receive_input
+  payload:
+    key: UP
+
+- type: wait
+  ticks: 1
+
+- type: dispatch
+  target: GameLoop
+  action: tick
+  payload: {}
+
+- type: assert_state
+  target: Pacman
+  expected_state:
+    x: 1
+    y: 9
+
+- type: assert_state
+  target: GameLoop
+  expected_state:
+    score: 10

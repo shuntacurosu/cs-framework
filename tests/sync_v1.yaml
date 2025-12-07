@@ -1,0 +1,9 @@
+synchronizations:
+  - name: SyncV1
+    when:
+      source: SourceConcept
+      event: trigger
+    then:
+      - target: TargetConcept
+        action: action_a
+        payload: {}
