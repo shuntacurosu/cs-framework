@@ -1,0 +1,105 @@
+synchronizations:
+  # Player movement triggers item pickup check
+  - name: PlayerMoved
+    when:
+      source: Player
+      event: moved
+    then:
+      - target: ItemManager
+        action: pickup
+        payload:
+          x: event.x
+          y: event.y
+          picker_name: event.name
+
+  # Player attack triggers damage to monster at target
+  - name: PlayerAttack
+    when:
+      source: Player
+      event: attacked
+    then:
+      - target: GameState
+        action: add_message
+        payload:
+          message: "You attack!"
+
+  # Monster death gives exp to player (Monster_0)
+  - name: MonsterDeath0
+    when:
+      source: Monster_0
+      event: died
+    then:
+      - target: Player
+        action: gain_exp
+        payload:
+          amount: event.exp_value
+      - target: GameState
+        action: add_message
+        payload:
+          message: "Monster defeated!"
+
+  # Monster death gives exp to player (Monster_1)
+  - name: MonsterDeath1
+    when:
+      source: Monster_1
+      event: died
+    then:
+      - target: Player
+        action: gain_exp
+        payload:
+          amount: event.exp_value
+
+  # Monster death gives exp to player (Monster_2)
+  - name: MonsterDeath2
+    when:
+      source: Monster_2
+      event: died
+    then:
+      - target: Player
+        action: gain_exp
+        payload:
+          amount: event.exp_value
+
+  # Player death ends the game
+  - name: PlayerDeath
+    when:
+      source: Player
+      event: died
+    then:
+      - target: GameState
+        action: end_game
+        payload:
+          victory: false
+
+  # Item pickup notification
+  - name: ItemPickup
+    when:
+      source: ItemManager
+      event: picked_up
+    then:
+      - target: GameState
+        action: add_message
+        payload:
+          message: "Picked up an item!"
+
+  # Health potion use heals player
+  - name: UseHealthPotion
+    when:
+      source: ItemManager
+      event: used
+    then:
+      - target: Player
+        action: heal
+        payload:
+          amount: event.effect_value
+
+  # Level up notification
+  - name: LevelUp
+    when:
+      source: Player
+      event: leveled_up
+    then:
+      - target: GameState
+        action: add_message
+        payload:
+          message: "Level up!"

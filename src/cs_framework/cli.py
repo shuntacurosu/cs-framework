@@ -103,6 +103,7 @@ def _install_for_antigravity(source_dir_path: str, target_dir: str):
     
     SKILL.md files are already in Antigravity workflow format
     (YAML frontmatter + Markdown with CLI commands).
+    Also updates AGENTS.md with CSFW integration rules.
     """
     for item in os.listdir(source_dir_path):
         src_item_path = os.path.join(source_dir_path, item)
@@ -114,6 +115,74 @@ def _install_for_antigravity(source_dir_path: str, target_dir: str):
                 workflow_path = os.path.join(target_dir, workflow_filename)
                 shutil.copy2(skill_md_path, workflow_path)
                 print(f"  - Installed workflow: {workflow_filename}")
+    
+    # Update AGENTS.md with CSFW rules
+    _update_agents_md()
+
+
+def _update_agents_md():
+    """Append CSFW rules to AGENTS.md if not already present."""
+    agents_md_path = os.path.join(os.getcwd(), "AGENTS.md")
+    
+    csfw_marker = "<!-- CSFW-INTEGRATION -->"
+    csfw_rules = f'''
+{csfw_marker}
+
+## C-S Framework Integration
+
+This project uses the **Concept-Synchronization Framework (CSFW)**.
+
+### Architecture Rules
+
+- All logic must be in **Concepts** (`src/concepts/*.py`)
+- Concepts communicate ONLY via **Events**
+- Interactions are defined in **Synchronization Rules** (`src/sync/rules.yaml`)
+
+### Development Workflow
+
+Use the CSFW workflows for development:
+
+| Task | Workflow |
+|------|----------|
+| **Full development guide** | `/csfw-dev` |
+| **Scaffold new Concept** | `/csfw-architect` |
+| **Validate structure** | `/csfw-linter` |
+| **Run test scenarios** | `/csfw-fuzzer` |
+| **Debug execution** | `/csfw-debugger` |
+
+### Quick Commands
+
+```bash
+# Create a new Concept
+csfw scaffold Player --actions move attack --events moved attacked --output src/concepts/
+
+# Validate the project
+csfw lint --path src/
+
+# Run a test scenario
+csfw run-scenario run.py scenario_test.yaml
+```
+'''
+    
+    # Check if AGENTS.md exists
+    if os.path.exists(agents_md_path):
+        with open(agents_md_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        if csfw_marker in content:
+            print("  - AGENTS.md: CSFW rules already present (skipped)")
+            return
+        
+        # Append to existing file
+        with open(agents_md_path, 'a', encoding='utf-8') as f:
+            f.write(csfw_rules)
+        print("  - AGENTS.md: Appended CSFW integration rules")
+    else:
+        # Create new AGENTS.md
+        with open(agents_md_path, 'w', encoding='utf-8') as f:
+            f.write("# AGENTS.md\n\nProject-specific instructions for AI coding assistants.\n")
+            f.write(csfw_rules)
+        print("  - AGENTS.md: Created with CSFW integration rules")
 
 def scaffold(args):
     generate_concept(
