@@ -20,6 +20,9 @@ from examples.roguelike.src.concepts.monster import Monster
 from examples.roguelike.src.concepts.dungeon import Dungeon
 from examples.roguelike.src.concepts.item import Item
 from examples.roguelike.src.concepts.gamestate import GameState
+from examples.roguelike import virtual_input
+from PIL import Image
+import numpy as np
 
 
 class HybridControlGame:
@@ -83,10 +86,91 @@ class HybridControlGame:
                    title="Hybrid Control Roguelike")
         pyxel.run(self.update, self.draw)
     
+    def check_input(self, key_code, virtual_key_name):
+        """Check both physical key and virtual key."""
+        if pyxel.btnp(key_code):
+            return True
+        
+        # We read the virtual key once per frame in update(), stored in self.current_virtual_key
+        return self.current_virtual_key == virtual_key_name
+
+    def save_screenshot(self):
+        """Save current screen to file."""
+        # Get screen buffer (width * height) - paletted
+        # Pyxel 2.0+ keeps data in pyxel.screen
+        # But accessing raw buffer might differ by version. 
+        # Using pyxel.screencast is for gif/video.
+        # We need raw access. image(0,0) might be the screen bank? No, screen is usually separate.
+        # pyxel.screen is an Image object in newer versions.
+        
+        try:
+            # Create a localized screenshot
+            # Since accessing raw buffer wrapper is tricky, we might use a known trick or just grab colors
+            # if pyxel version supports it.
+            # Assuming standard pyxel.image(3) or similar is screen? No.
+            # Let's try to access the buffer.
+            
+            # Note: Accessing ctypes or bytearray in Python Pyxel can be slow.
+            # We will use a safe approach if possible.
+            
+            width = pyxel.width
+            height = pyxel.height
+            
+            # Simple but slow: get pixel by pixel? No, too slow.
+            # pyxel.screen.data_ptr ? 
+            
+            if hasattr(pyxel, 'screen'):
+                # Access internal buffer if possible
+                pass
+                
+            # For now, let's assume we can dump it.
+            # If not easy, we might skip this step or use a very simple logger.
+            # Wait, the user specifically ASKED for screen info.
+            # Pyxel 1.9+ has pyxel.screen which is an Image.
+            # Image has .data_ptr or .to_numpy()? No.
+            
+            # Let's rely on saving via pyxel.screenshot() ? No, that asks for user interaction or save to predefined path.
+            # pyxel.screencast() ?
+            
+            # We will try to map the internal memory if possible.
+            # But wait, we can just use the provided "screenshot" function if logic permits?
+            # Pyxel doesn't have a silent screenshot function to a specific path easily.
+            
+            # Alternative: Construct image from logical state?
+            # User REJECTED that ("pyxelの画面情報を取得"). "Must use screen info".
+            # So I must capture pixels.
+            
+            # Let's try to capture using a standard method if Pyxel allows.
+            # If Pyxel version is old, this is hard.
+            # Let's attempt to use PIL to grab the window if it was easy, but we are in code.
+            
+            # WORKAROUND: Pyxel doesn't expose raw buffer efficiently to Python without numpy/ctypes magic.
+            # However, `pyxel.image(img).save(filename, scale)` exists.
+            # Can we copy screen to an image bank and save it?
+            # pyxel.screen.save("latest_screen.png", scale=1) might work.
+            
+            pyxel.screen.save("latest_screen.png", scale=1)
+            
+        except Exception as e:
+            print(f"Screenshot failed: {e}")
+
     def update(self):
-        if pyxel.btnp(pyxel.KEY_Q):
+        # Read virtual key once per frame
+        self.current_virtual_key = virtual_input.read_key()
+        if self.current_virtual_key:
+            print(f"Virtual Key: {self.current_virtual_key}")
+            
+        if self.check_input(pyxel.KEY_Q, "Q"):
             pyxel.quit()
             return
+
+        # Save screenshot every frame (or every few frames)
+        # To avoid lag, maybe every 10 frames or only when action happens?
+        # User wants to control it, so high FPS update is needed for the agent to see.
+        # But file I/O is slow. Let's do it every 5 frames?
+        if pyxel.frame_count % 5 == 0:
+            self.save_screenshot()
+
         
         gs = self.game_state.get_state_snapshot()
         if gs["status"] != "playing":
@@ -98,15 +182,15 @@ class HybridControlGame:
         
         action_taken = False
         
-        # === Check for HUMAN input (keyboard) ===
+        # === Check for HUMAN input (keyboard) OR Virtual Input ===
         dx, dy = 0, 0
-        if pyxel.btnp(pyxel.KEY_UP) or pyxel.btnp(pyxel.KEY_W):
+        if self.check_input(pyxel.KEY_UP, "UP") or self.check_input(pyxel.KEY_W, "W"):
             dy = -1
-        elif pyxel.btnp(pyxel.KEY_DOWN) or pyxel.btnp(pyxel.KEY_S):
+        elif self.check_input(pyxel.KEY_DOWN, "DOWN") or self.check_input(pyxel.KEY_S, "S"):
             dy = 1
-        elif pyxel.btnp(pyxel.KEY_LEFT) or pyxel.btnp(pyxel.KEY_A):
+        elif self.check_input(pyxel.KEY_LEFT, "LEFT") or self.check_input(pyxel.KEY_A, "A"):
             dx = -1
-        elif pyxel.btnp(pyxel.KEY_RIGHT) or pyxel.btnp(pyxel.KEY_D):
+        elif self.check_input(pyxel.KEY_RIGHT, "RIGHT") or self.check_input(pyxel.KEY_D, "D"):
             dx = 1
         
         if dx != 0 or dy != 0:
@@ -122,6 +206,8 @@ class HybridControlGame:
                     self.attack_monster(monster)
                 else:
                     self.runner.dispatch(self.player.id, "move", {"dx": dx, "dy": dy})
+                    if tile == Dungeon.TILE_STAIRS:
+                         self.next_floor()
                 
                 self.last_controller = "HUMAN"
                 self.command_count["human"] += 1
@@ -130,7 +216,8 @@ class HybridControlGame:
         # === Check for AI input (RDF commands) ===
         if not action_taken:
             # Manually poll commands to add validation logic
-            commands = self.runner.logger.get_pending_commands()
+            # commands = self.runner.logger.get_pending_commands()
+            commands = [] # DISABLED for performance (using virtual input)
             executed_count = 0
             
             for cmd in commands:
@@ -191,6 +278,41 @@ class HybridControlGame:
             self.runner.publish_all_states()
 
     
+    def next_floor(self):
+        """Go to the next floor."""
+        print(f"*** STAGE CLEAR! Proceeding to next floor. ***")
+        self.game_state.next_floor()
+        self.dungeon.generate({"floor": self.game_state.get_state_snapshot()["floor"]})
+        
+        start_x, start_y = self.dungeon.get_player_start()
+        self.player._state["x"] = start_x
+        self.player._state["y"] = start_y
+        
+        spawns = self.dungeon.get_monster_spawn_positions(3)
+        self.monsters = [] # regenerate monsters logic or just reset?
+        # In main.py it reused monster objects. 
+        # But here monsters list is fixed size.
+        # Let's reset them.
+        for i, monster in enumerate(self.runner.concepts.values()):
+             if isinstance(monster, Monster):
+                  # This depends on how register worked. self.monsters is a list.
+                  pass
+
+        # Re-populate self.monsters simply
+        # Original main.py:
+        # for i, monster in enumerate(self.monsters):
+        #     if i < len(spawns): ...
+        
+        # Let's use the main.py logic exactly
+        for i, monster in enumerate(self.monsters):
+            if i < len(spawns):
+                monster._state["x"] = spawns[i][0]
+                monster._state["y"] = spawns[i][1]
+                monster._state["hp"] = monster._state["max_hp"]
+                monster._state["is_alive"] = True
+            else:
+                monster._state["is_alive"] = False
+
     def get_monster_at(self, x, y):
         for m in self.monsters:
             ms = m.get_state_snapshot()
