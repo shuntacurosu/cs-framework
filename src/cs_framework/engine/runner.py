@@ -180,3 +180,95 @@ class Runner:
             print(f"Replayed to tick {tick_index}")
         else:
             print(f"Invalid tick index {tick_index}. Max {len(self.history)-1}")
+
+    # ===== External Command Interface =====
+
+    def poll_and_execute_commands(self) -> int:
+        """
+        Poll for pending commands from the RDF graph and execute them.
+        Returns the number of commands executed.
+        
+        This enables LLM agents to control the Runner via SPARQL.
+        """
+        if not self.logger:
+            return 0
+        
+        commands = self.logger.get_pending_commands()
+        executed = 0
+        
+        for cmd in commands:
+            try:
+                target_name = cmd["target"]
+                action_name = cmd["action"]
+                payload = cmd["payload"]
+                
+                concept = self.get_concept_by_name(target_name)
+                if concept:
+                    self.dispatch(concept.id, action_name, payload)
+                    self.logger.mark_command_done(cmd["uri"])
+                    executed += 1
+                    print(f"Executed command: {target_name}.{action_name}")
+                else:
+                    self.logger.mark_command_done(cmd["uri"], f"Concept '{target_name}' not found")
+                    print(f"Command failed: Concept '{target_name}' not found")
+            except Exception as e:
+                self.logger.mark_command_done(cmd["uri"], str(e))
+                print(f"Command error: {e}")
+        
+        return executed
+
+    def publish_all_states(self):
+        """
+        Publish current state of all concepts to the command graph.
+        Allows external agents (LLMs) to query current game state.
+        """
+        if not self.logger:
+            return
+        
+        for concept in self.concepts.values():
+            self.logger.publish_state(concept.name, concept.get_state_snapshot())
+        
+        self.logger.save_command_graph()
+
+    def run_with_external_control(self, tick_callback=None, max_ticks: int = 1000, poll_interval: float = 0.1):
+        """
+        Run the game loop with external command polling.
+        
+        This is the main loop for LLM-controlled execution:
+        1. Publish current state to RDF
+        2. Poll for commands from RDF
+        3. Execute commands
+        4. Repeat
+        
+        Args:
+            tick_callback: Optional function to call each tick (for game logic like AI)
+            max_ticks: Maximum number of ticks to run
+            poll_interval: Seconds to wait between polls
+        """
+        import time
+        
+        for tick in range(max_ticks):
+            # Publish state for external agents to read
+            self.publish_all_states()
+            
+            # Poll and execute external commands
+            executed = self.poll_and_execute_commands()
+            
+            # Optional game tick logic
+            if tick_callback:
+                tick_callback(self, tick)
+            
+            # If no commands, wait before next poll
+            if executed == 0:
+                time.sleep(poll_interval)
+            
+            # Check for termination conditions (could be enhanced)
+            if hasattr(self, '_should_stop') and self._should_stop:
+                break
+        
+        print(f"External control loop ended after {tick + 1} ticks")
+
+    def stop_external_control(self):
+        """Signal the external control loop to stop."""
+        self._should_stop = True
+
