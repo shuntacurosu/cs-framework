@@ -14,7 +14,7 @@ def load_runner(setup_path):
     module = importlib.util.module_from_spec(spec)
     sys.modules["app_setup"] = module
     spec.loader.exec_module(module)
-    
+
     if hasattr(module, "runner"):
         return module.runner
     elif hasattr(module, "get_runner"):
@@ -25,7 +25,7 @@ def load_runner(setup_path):
 def load_scenario(scenario_path):
     if not os.path.exists(scenario_path):
         raise FileNotFoundError(f"Scenario file not found: {scenario_path}")
-        
+
     with open(scenario_path, 'r', encoding='utf-8') as f:
         if scenario_path.endswith('.yaml') or scenario_path.endswith('.yml'):
             return yaml.safe_load(f)
@@ -38,17 +38,17 @@ def run_scenario_tool(setup_file, scenario_file):
     try:
         print(f"Loading runner from {setup_file}...")
         runner = load_runner(setup_file)
-        
+
         print(f"Loading scenario from {scenario_file}...")
         scenario = load_scenario(scenario_file)
-        
+
         print("Starting scenario execution...")
         runner.start()
         player = ScenarioPlayer(runner)
         player.play(scenario)
-        
+
         print("Scenario completed successfully.")
-        
+
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -57,7 +57,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run a scenario against a C-S Framework application.")
     parser.add_argument("setup_file", help="Path to Python file that exports 'runner' or 'get_runner()'")
     parser.add_argument("scenario_file", help="Path to YAML/JSON scenario file")
-    
+
     args = parser.parse_args()
     run_scenario_tool(args.setup_file, args.scenario_file)
 

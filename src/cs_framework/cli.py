@@ -7,13 +7,7 @@ import importlib.resources
 from .tools.architect import generate_concept
 from .tools.speckit_integration import run_integration
 from .tools.linter import run_linter
-# Import run_scenario_tool from fuzzer script. 
-# Since it's not in a package structure that is easily importable relative to here without sys.path hacks or moving it,
-# we will try to import it assuming the package structure is preserved.
-# The fuzzer script is at src/cs_framework/skills/fuzzer/scripts/run_scenario.py
-# This is not ideal for a library. Ideally tools should be in cs_framework.tools.
-# For now, we will import it dynamically or assume it's installed.
-from .skills.fuzzer.scripts.run_scenario import run_scenario_tool
+from .tools.scenario_runner import run_scenario_tool
 
 # For GUI, it's in src/cs_gui/main.py. This is outside cs_framework package usually?
 # In setup.py: packages=find_packages(where="src"), package_dir={"": "src"}
@@ -71,28 +65,55 @@ def install_skills(args):
 
     try:
         os.makedirs(target_dir, exist_ok=True)
-        # Copy all skill directories
-        # We look for directories that contain SKILL.md
-        for item in os.listdir(source_dir_path):
-            src_item_path = os.path.join(source_dir_path, item)
-            if os.path.isdir(src_item_path):
-                skill_md = os.path.join(src_item_path, "SKILL.md")
-                if os.path.exists(skill_md):
-                    dst_item_path = os.path.join(target_dir, item)
-                    if os.path.exists(dst_item_path):
-                        shutil.rmtree(dst_item_path)
-                    shutil.copytree(src_item_path, dst_item_path)
-                    print(f"  - Installed skill: {item}")
+        
+        if tool == 'antigravity':
+            # Convert SKILL.md to Antigravity workflow format
+            _install_for_antigravity(source_dir_path, target_dir)
+        else:
+            # Claude: copy skill directories as-is
+            _install_for_claude(source_dir_path, target_dir)
         
         print("\nSuccess! Skills installed.")
         if tool == 'claude':
             print("Please restart Claude Desktop to load the new skills.")
         elif tool == 'antigravity':
-            print("Skills are now available as workflows in .agent/workflows/")
+            print("Workflows are now available. Use /csfw-<skill_name> to invoke them.")
         
     except Exception as e:
         print(f"Error installing skills: {e}")
         sys.exit(1)
+
+
+def _install_for_claude(source_dir_path: str, target_dir: str):
+    """Copy skill directories as-is for Claude."""
+    for item in os.listdir(source_dir_path):
+        src_item_path = os.path.join(source_dir_path, item)
+        if os.path.isdir(src_item_path):
+            skill_md = os.path.join(src_item_path, "SKILL.md")
+            if os.path.exists(skill_md):
+                dst_item_path = os.path.join(target_dir, item)
+                if os.path.exists(dst_item_path):
+                    shutil.rmtree(dst_item_path)
+                shutil.copytree(src_item_path, dst_item_path)
+                print(f"  - Installed skill: {item}")
+
+
+def _install_for_antigravity(source_dir_path: str, target_dir: str):
+    """Copy SKILL.md files as workflow files for Antigravity.
+    
+    SKILL.md files are already in Antigravity workflow format
+    (YAML frontmatter + Markdown with CLI commands).
+    """
+    for item in os.listdir(source_dir_path):
+        src_item_path = os.path.join(source_dir_path, item)
+        if os.path.isdir(src_item_path):
+            skill_md_path = os.path.join(src_item_path, "SKILL.md")
+            if os.path.exists(skill_md_path):
+                # Copy SKILL.md as csfw-<name>.md
+                workflow_filename = f"csfw-{item}.md"
+                workflow_path = os.path.join(target_dir, workflow_filename)
+                shutil.copy2(skill_md_path, workflow_path)
+                print(f"  - Installed workflow: {workflow_filename}")
 
 def scaffold(args):
     generate_concept(
