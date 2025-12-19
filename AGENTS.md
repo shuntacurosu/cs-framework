@@ -41,3 +41,39 @@ Before taking any action (either tool calls *or* responses to the user), you mus
     8.2) This persistence must be intelligent: On *transient* errors (e.g. please try again), you *must* retry **unless an explicit retry limit (e.g., max x tries) has been reached**. If such a limit is hit, you *must* stop. On *other* errors, you must change your strategy or arguments, not repeat the same failed call.
 
 9) Inhibit your response: only take an action after all the above reasoning is completed. Once you've taken an action, you cannot take it back.
+<!-- CSFW-INTEGRATION -->
+
+## C-S Framework Integration
+
+This project uses the **Concept-Synchronization Framework (CSFW)**.
+
+### Architecture Rules
+
+- All logic must be in **Concepts** (`src/concepts/*.py`)
+- Concepts communicate ONLY via **Events**
+- Interactions are defined in **Synchronization Rules** (`src/sync/rules.yaml`)
+
+### Development Workflow
+
+Use the CSFW workflows for development:
+
+| Task | Workflow |
+|------|----------|
+| **Full development guide** | `/csfw-dev` |
+| **Scaffold new Concept** | `/csfw-architect` |
+| **Validate structure** | `/csfw-linter` |
+| **Run test scenarios** | `/csfw-fuzzer` |
+| **Debug execution** | `/csfw-debugger` |
+
+### Quick Commands
+
+```bash
+# Create a new Concept
+csfw scaffold Player --actions move attack --events moved attacked --output src/concepts/
+
+# Validate the project
+csfw lint --path src/
+
+# Run a test scenario
+csfw run-scenario run.py scenario_test.yaml
+```
