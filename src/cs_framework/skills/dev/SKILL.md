@@ -97,7 +97,29 @@ Use `/csfw-debugger` to analyze execution:
 
 ```bash
 csfw gui --log execution.ttl
+csfw gui --log execution.ttl
 ```
+
+### 8. Autonomous Testing with RDF/SPARQL
+
+For advanced testing and debugging, you can control the application externally using RDF/SPARQL without a GUI or manual input.
+
+#### Workflow
+1. **Enable RDF Command Polling**: Ensure your `Runner` or Game Loop checks for pending commands in the RDF Logger.
+2. **External Agent**: Create a script that acts as a "Driver".
+    - **Read State**: Query the latest game state from the RDF Graph using SPARQL (e.g., "Select Player position").
+    - **Think**: Use logic or LLM to decide the next action.
+    - **Act**: Write command triples (e.g., `Player a:move ...`) to the command `.ttl` file.
+3. **Loop**: The game reads the command, executes it, updates the state, and the cycle repeats.
+
+This allows for:
+- **Headless E2E Testing**: Run the full game logic driven by an agent.
+- **Fuzzing with Context**: Generate inputs based on available actions in the current state.
+- **AI Debugging**: Let an LLM play the game to find edge cases.
+
+#### Example Architecture
+`Driver Script` <--(SPARQL Queries)-- `RDF Graph (State)` <--(Updates)-- `Game Process`
+`Driver Script` --(RDF Commands)--> `Command File` --(Polling)--> `Game Process`
 
 ## Project Structure
 
