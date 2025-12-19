@@ -18,13 +18,14 @@ class RDFLogger:
     def __init__(self, log_file: str = "execution.ttl", console_output: bool = True, save_interval: float = 0.0):
         self.graph = Graph()
         self.graph.bind("cs", CS)
-        self.log_file = log_file
+        # Convert to absolute path for reliable file access
+        self.log_file = os.path.abspath(log_file)
         self.console_output = console_output
         self.save_interval = save_interval
         self.last_save_time = 0.0
         
         # Command graph (separate for external interaction)
-        self.command_file = log_file.replace(".ttl", "_commands.ttl")
+        self.command_file = self.log_file.replace(".ttl", "_commands.ttl")
         self.command_graph = Graph()
         self.command_graph.bind("cs", CS)
         
