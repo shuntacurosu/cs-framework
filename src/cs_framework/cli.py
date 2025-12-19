@@ -25,12 +25,19 @@ except ImportError:
 
 def install_skills(args):
     target_dir = args.target
+    tool = getattr(args, 'tool', 'claude')
     
-    # If target is not specified, default to .claude/skills/csfw in the current directory
+    # Tool-specific default paths
+    default_paths = {
+        'claude': os.path.join(os.getcwd(), ".claude", "skills", "csfw"),
+        'antigravity': os.path.join(os.getcwd(), ".agent", "workflows"),
+    }
+    
+    # If target is not specified, use tool-specific default
     if not target_dir:
-        target_dir = os.path.join(os.getcwd(), ".claude", "skills", "csfw")
+        target_dir = default_paths.get(tool, default_paths['claude'])
 
-    print(f"Installing Claude Skills to: {target_dir}")
+    print(f"Installing skills for {tool} to: {target_dir}")
 
     # Get the path to the bundled skills directory
     try:
@@ -78,7 +85,10 @@ def install_skills(args):
                     print(f"  - Installed skill: {item}")
         
         print("\nSuccess! Skills installed.")
-        print("Please restart Claude Desktop to load the new skills.")
+        if tool == 'claude':
+            print("Please restart Claude Desktop to load the new skills.")
+        elif tool == 'antigravity':
+            print("Skills are now available as workflows in .agent/workflows/")
         
     except Exception as e:
         print(f"Error installing skills: {e}")
@@ -97,8 +107,10 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # install-skills command
-    parser_skills = subparsers.add_parser("install-skills", help="Install Claude Skills definitions")
-    parser_skills.add_argument("--target", help="Target directory for skills (default: ./.claude/skills/csfw)")
+    parser_skills = subparsers.add_parser("install-skills", help="Install skills for AI coding assistants")
+    parser_skills.add_argument("--tool", choices=["claude", "antigravity"], default="claude",
+                                help="Target tool (default: claude)")
+    parser_skills.add_argument("--target", help="Target directory (default: tool-specific)")
     parser_skills.set_defaults(func=install_skills)
 
     # scaffold command
