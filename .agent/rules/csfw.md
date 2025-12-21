@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Project Constitution
 ## C-S Framework Integration Rules
 You are operating within a project that uses the **Concept-Synchronization Framework (CSFW)**.
