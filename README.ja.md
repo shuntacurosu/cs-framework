@@ -13,6 +13,10 @@ Concept-Synchronization (C-S) 憲章を実装したPythonフレームワーク�
 
 ```bash
 pip install cs-framework
+
+# 可視化ツール（NiceGUI）を含める場合:
+pip install cs-framework[visualization]
+
 ```
 
 開発用:

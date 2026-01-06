@@ -13,6 +13,10 @@ A Python framework implementing the Concept-Synchronization Constitution.
 
 ```bash
 pip install cs-framework
+
+# To include visualization tools (NiceGUI):
+pip install cs-framework[visualization]
+
 ```
 
 For development:
