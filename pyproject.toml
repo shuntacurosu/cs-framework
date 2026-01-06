@@ -17,8 +17,7 @@ dependencies = [
     "pyyaml>=6.0",
     "loguru>=0.7.0",
     "networkx>=3.0",
-    "pydantic>=2.0.0",
-]
+    "pydantic>
 
 [project.urls]
 Homepage = "https://github.com/shuntacurosu/cs-framework"
@@ -38,3 +37,5 @@ csfw = "cs_framework.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+=2.0.0",
+]
